@@ -33,49 +33,29 @@
 */
 /** \author Jeremie Deray. */
 
-#include "ros_msgs_sync/sync_image_handler.h"
+#include "ros_msgs_sync/sync_image_transport_handler.h"
 
-SyncImageHandler::SyncImageHandler() :
-  SyncImplHandler(),
-  _new_mess(false)
-{
+// ROS headers
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
+// Boost headers
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/foreach.hpp>
+#include <boost/assign.hpp>
+#include <boost/filesystem.hpp>
+
+SyncImageTransportHandler::SyncImageTransportHandler() :
+  SyncImplTransportHandler(),
+  _new_img(false),
+  _encoding("bgr8")
+{  
+  _nh.param("image_encoding", _encoding, _encoding);
 }
 
-bool SyncImageHandler::waitForImages(std::vector<sensor_msgs::Image>& images,
-                                     ros::Duration timeout)
-{
-  _new_mess = false;
-
-  images.clear();
-
-  ros::Duration sleep(0, 10e-9/30); // wait for 1/30 sec
-  ros::Time start = ros::Time::now();
-
-  while (!_new_mess)
-  {
-    if (timeout != ros::Duration(0))
-      if ( (ros::Time::now() - start).toSec() > timeout.toSec() )
-        return false;
-
-    sleep.sleep();
-  }
-
-  boost::mutex::scoped_lock lock(_mut);
-
-  // TODO check copy constructor sensor_msgs::Image
-  for (size_t i=0; i<_images.size(); ++i)
-    images.push_back(_images[i]);
-
-  return true;
-}
-
-//
-// A pure virtual member.
-// @param vecPcldPtr : std::vector< sensor_msgs::Image::Ptr >
-//        callback has to be defined in derived class !
-//
-void SyncImageHandler::callback(const std::vector<MPtr>& vecMPtr)
+void SyncImageTransportHandler::callback(const std::vector<MPtr>& vecMPtr)
 {
   boost::mutex::scoped_lock lock(_mut);
 
@@ -85,13 +65,48 @@ void SyncImageHandler::callback(const std::vector<MPtr>& vecMPtr)
   {
     try
     {
-      _images.push_back(*vecMPtr[i]);
+      // Here we clone OpenCV Mat to avoid messing up with pointers
+      _images.push_back(cv_bridge::toCvShare(vecMPtr[i],
+                        _encoding)->image.clone());
     }
-    catch (std::exception& e)
+    catch (cv_bridge::Exception)
     {
-      ROS_ERROR("Couldn't retrieve image : %s", e.what());
+      ROS_ERROR("Couldn't convert %s image", vecMPtr[i]->encoding.c_str());
     }
   }
 
-  _new_mess = true;
+  _new_img = true;
+}
+
+/**
+* waitForImages()
+* Gets updated images from SyncImageDisplay object
+* @param images : std::vector< cv::Mat >
+* this vector is first cleared then
+* filled with images
+* @param timeout : max duration to wait for images
+*/
+bool SyncImageTransportHandler::waitForImages(std::vector<cv::Mat>& images,
+                                              ros::Duration timeout)
+{
+  ros::Duration sleep(0.005);
+  ros::Time start = ros::Time::now();
+  _new_img = false;
+
+  while (!_new_img)
+  {
+    sleep.sleep();
+    if (timeout != ros::Duration(0))
+      if ( (ros::Time::now() - start) > timeout )
+        return false;
+  }
+
+  images.clear();
+
+  boost::mutex::scoped_lock lock(_mut);
+
+  for (int i=0; i<_images.size(); ++i)
+    images.push_back(_images[i].clone());
+
+  return true;
 }

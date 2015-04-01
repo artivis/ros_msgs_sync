@@ -33,65 +33,52 @@
 */
 /** \author Jeremie Deray. */
 
-#include "ros_msgs_sync/sync_image_handler.h"
+#ifndef ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
+#define ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
 
-SyncImageHandler::SyncImageHandler() :
-  SyncImplHandler(),
-  _new_mess(false)
+#include "ros_msgs_sync/impl/sync_impl_handler.h"
+
+#include <sensor_msgs/Image.h>
+
+#include <boost/thread/mutex.hpp>
+
+class SyncImageHandler :
+  public SyncImplHandler<sensor_msgs::Image>
 {
 
-}
+public:
 
-bool SyncImageHandler::waitForImages(std::vector<sensor_msgs::Image>& images,
-                                     ros::Duration timeout)
-{
-  _new_mess = false;
+  /*
+  * Constructor.
+  * Retrieve rosparam 'topics' as a list of image topics to synchronise
+  */
+  SyncImageHandler();
 
-  images.clear();
+  /*
+  * Destructor.
+  */
+  ~SyncImageHandler() {}
 
-  ros::Duration sleep(0, 10e-9/30); // wait for 1/30 sec
-  ros::Time start = ros::Time::now();
+  bool waitForImages(std::vector<sensor_msgs::Image>& images,
+                     ros::Duration timeout = ros::Duration(0));
 
-  while (!_new_mess)
-  {
-    if (timeout != ros::Duration(0))
-      if ( (ros::Time::now() - start).toSec() > timeout.toSec() )
-        return false;
+  std::vector<std::string> getTopics()
+    { return _topics; }
 
-    sleep.sleep();
-  }
+protected:
 
-  boost::mutex::scoped_lock lock(_mut);
+  /*
+  * A pure virtual member.
+  * @param vecPcldPtr : std::vector< sensor_msgs::Image::Ptr >
+  *        callback has to be defined in derived class !
+  */
+  virtual void callback(const std::vector<MPtr>& vecMPtr);
 
-  // TODO check copy constructor sensor_msgs::Image
-  for (size_t i=0; i<_images.size(); ++i)
-    images.push_back(_images[i]);
+private:
 
-  return true;
-}
+  bool _new_mess;
+  boost::mutex _mut;
+  std::vector<sensor_msgs::Image> _images;
+};
 
-//
-// A pure virtual member.
-// @param vecPcldPtr : std::vector< sensor_msgs::Image::Ptr >
-//        callback has to be defined in derived class !
-//
-void SyncImageHandler::callback(const std::vector<MPtr>& vecMPtr)
-{
-  boost::mutex::scoped_lock lock(_mut);
-
-  _images.clear();
-
-  for (size_t i=0; i<vecMPtr.size(); ++i)
-  {
-    try
-    {
-      _images.push_back(*vecMPtr[i]);
-    }
-    catch (std::exception& e)
-    {
-      ROS_ERROR("Couldn't retrieve image : %s", e.what());
-    }
-  }
-
-  _new_mess = true;
-}
+#endif // ROS_IMG_SYNC_SYNC_POINTCLOUD_HANDLER_H

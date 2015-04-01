@@ -33,65 +33,53 @@
 */
 /** \author Jeremie Deray. */
 
-#include "ros_msgs_sync/sync_image_handler.h"
+#ifndef ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
+#define ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
 
-SyncImageHandler::SyncImageHandler() :
-  SyncImplHandler(),
-  _new_mess(false)
+#include "ros_msgs_sync/impl/sync_impl_handler.h"
+
+// ROS headers
+#include <image_transport/subscriber_filter.h>
+#include <sensor_msgs/Image.h>
+
+/**
+* class SyncImageHandler
+* It synchronises image topic callbacks (up to 8)
+* Its callback is pure virtual so that it can be easily
+* defined in a derived class
+*/
+class SyncImplTransportHandler :
+  public SyncImplHandler<sensor_msgs::Image>
 {
 
-}
+public:
 
-bool SyncImageHandler::waitForImages(std::vector<sensor_msgs::Image>& images,
-                                     ros::Duration timeout)
-{
-  _new_mess = false;
+  /**
+  * Constructor.
+  * Retrieve rosparam 'topics' as a list of image topics to synchronise
+  *                   'transport' type of image transport. Default 'compressed'
+  *                   'queue_size' size of synronisation queue
+  */
+  SyncImplTransportHandler();
 
-  images.clear();
+  /**
+  * Destructor.
+  */
+  ~SyncImplTransportHandler() {}
 
-  ros::Duration sleep(0, 10e-9/30); // wait for 1/30 sec
-  ros::Time start = ros::Time::now();
+protected:
 
-  while (!_new_mess)
-  {
-    if (timeout != ros::Duration(0))
-      if ( (ros::Time::now() - start).toSec() > timeout.toSec() )
-        return false;
+  typedef image_transport::ImageTransport It;
+  typedef image_transport::SubscriberFilter SubsFil;
 
-    sleep.sleep();
-  }
+  virtual void initParam();
+  virtual bool initSubs();
+  virtual bool initSyncSubs();
 
-  boost::mutex::scoped_lock lock(_mut);
+  std::string _trp_hint;
 
-  // TODO check copy constructor sensor_msgs::Image
-  for (size_t i=0; i<_images.size(); ++i)
-    images.push_back(_images[i]);
+  boost::shared_ptr<It> _img_trans;
+  boost::ptr_vector<SubsFil> _img_subs;
+};
 
-  return true;
-}
-
-//
-// A pure virtual member.
-// @param vecPcldPtr : std::vector< sensor_msgs::Image::Ptr >
-//        callback has to be defined in derived class !
-//
-void SyncImageHandler::callback(const std::vector<MPtr>& vecMPtr)
-{
-  boost::mutex::scoped_lock lock(_mut);
-
-  _images.clear();
-
-  for (size_t i=0; i<vecMPtr.size(); ++i)
-  {
-    try
-    {
-      _images.push_back(*vecMPtr[i]);
-    }
-    catch (std::exception& e)
-    {
-      ROS_ERROR("Couldn't retrieve image : %s", e.what());
-    }
-  }
-
-  _new_mess = true;
-}
+#endif // ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
