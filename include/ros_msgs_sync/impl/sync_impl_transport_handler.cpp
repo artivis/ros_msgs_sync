@@ -1,4 +1,4 @@
-#include "ros_img_sync/impl/sync_impl_transport_handler.h"
+#include "ros_msgs_sync/impl/sync_impl_transport_handler.h"
 
 // Boost headers
 #include <boost/bind.hpp>

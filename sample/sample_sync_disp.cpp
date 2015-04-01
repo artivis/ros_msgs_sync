@@ -41,7 +41,7 @@
 * and display them in OpenCV windows.
 */
 
-#include "ros_img_sync/sync_image_handler.h"
+#include "ros_msgs_sync/sync_image_handler.h"
 
 // ROS headers
 #include <ros/ros.h>

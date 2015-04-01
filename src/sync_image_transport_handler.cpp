@@ -33,7 +33,7 @@
 */
 /** \author Jeremie Deray. */
 
-#include "ros_img_sync/sync_image_transport_handler.h"
+#include "ros_msgs_sync/sync_image_transport_handler.h"
 
 // ROS headers
 #include <image_transport/image_transport.h>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ros_img_sync)
+project(ros_msgs_sync)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp

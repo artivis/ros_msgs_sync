@@ -36,7 +36,7 @@
 #ifndef ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
 #define ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
 
-#include "ros_img_sync/impl/sync_impl_handler.h"
+#include "ros_msgs_sync/impl/sync_impl_handler.h"
 
 #include <sensor_msgs/Image.h>
 

@@ -36,7 +36,7 @@
 #ifndef ROS_IMG_SYNC_SYNC_IMAGE_TRANSPORT_HANDLER_H
 #define ROS_IMG_SYNC_SYNC_IMAGE_TRANSPORT_HANDLER_H
 
-#include "ros_img_sync/impl/sync_impl_transport_handler.h"
+#include "ros_msgs_sync/impl/sync_impl_transport_handler.h"
 
 #include <cv_bridge/cv_bridge.h>
 

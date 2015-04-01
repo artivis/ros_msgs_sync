@@ -46,7 +46,6 @@
 // Boost headers
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant.hpp>
-// Boost headers
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
