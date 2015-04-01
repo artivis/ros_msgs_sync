@@ -49,9 +49,10 @@
 
 SyncImageTransportHandler::SyncImageTransportHandler() :
   SyncImplTransportHandler(),
-  _new_img(false)
+  _new_img(false),
+  _encoding("bgr8")
 {  
-
+  _nh.param("image_encoding", _encoding, _encoding);
 }
 
 void SyncImageTransportHandler::callback(const std::vector<MPtr>& vecMPtr)
@@ -66,7 +67,7 @@ void SyncImageTransportHandler::callback(const std::vector<MPtr>& vecMPtr)
     {
       // Here we clone OpenCV Mat to avoid messing up with pointers
       _images.push_back(cv_bridge::toCvShare(vecMPtr[i],
-                        vecMPtr[i]->encoding)->image.clone());
+                        _encoding)->image.clone());
     }
     catch (cv_bridge::Exception)
     {

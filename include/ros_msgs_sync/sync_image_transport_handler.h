@@ -81,6 +81,8 @@ protected:
 
   std::vector<cv::Mat> _images;
 
+  std::string _encoding;
+
   boost::mutex _mut;
 };
 
