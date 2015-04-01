@@ -27,7 +27,9 @@ include_directories(
 
 ## Declare a cpp library
 add_library(${PROJECT_NAME}
-   src/sync_image_handler.cpp
+  src/sync_image_handler.cpp
+  src/sync_image_transport_handler.cpp
+  include/${PROJECT_NAME}/impl/sync_impl_transport_handler.cpp
 )
 target_link_libraries(${PROJECT_NAME}
    ${catkin_LIBRARIES} 
@@ -35,8 +37,8 @@ target_link_libraries(${PROJECT_NAME}
 
 ## Declare a cpp executable
 
-add_executable(img_sync_save sample/sample_sync_save.cpp)
-target_link_libraries(img_sync_save
+add_executable(img_trp_sync_save sample/sample_sync_save.cpp)
+target_link_libraries(img_trp_sync_save
    ${catkin_LIBRARIES} ${PROJECT_NAME}
 )
 
@@ -45,12 +47,17 @@ target_link_libraries(img_sync_disp
    ${catkin_LIBRARIES} ${PROJECT_NAME}
 )
 
+add_executable(ptcld_sync_save sample/sample_sync_pointcloud.cpp)
+target_link_libraries(ptcld_sync_save
+   ${catkin_LIBRARIES} ${PROJECT_NAME}
+)
+
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS img_sync_save img_sync_disp ${PROJECT_NAME}
+install(TARGETS img_trp_sync_save img_sync_disp ${PROJECT_NAME}
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

@@ -33,37 +33,40 @@
 */
 /** \author Jeremie Deray. */
 
-#ifndef ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
-#define ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
+#ifndef ROS_IMG_SYNC_SYNC_IMAGE_TRANSPORT_HANDLER_H
+#define ROS_IMG_SYNC_SYNC_IMAGE_TRANSPORT_HANDLER_H
 
-#include "ros_img_sync/impl/sync_impl_handler.h"
+#include "ros_img_sync/impl/sync_impl_transport_handler.h"
 
-#include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
 
-#include <boost/thread/mutex.hpp>
-
-class SyncImageHandler :
-  public SyncImplHandler<sensor_msgs::Image>
+/**
+* class SyncImageHandler
+* It synchronises image topic callbacks (up to 8)
+* Its callback is pure virtual so that it can be easily
+* defined in a derived class
+*/
+class SyncImageTransportHandler :
+  public SyncImplTransportHandler
 {
 
 public:
 
-  /*
+  /**
   * Constructor.
   * Retrieve rosparam 'topics' as a list of image topics to synchronise
+  *                   'transport' type of image transport. Default 'compressed'
+  *                   'queue_size' size of synronisation queue
   */
-  SyncImageHandler();
+  SyncImageTransportHandler();
 
-  /*
+  /**
   * Destructor.
   */
-  ~SyncImageHandler() {}
+  ~SyncImageTransportHandler() {}
 
-  bool waitForImages(std::vector<sensor_msgs::Image>& images,
+  bool waitForImages(std::vector<cv::Mat>& images,
                      ros::Duration timeout = ros::Duration(0));
-
-  std::vector<std::string> getTopics()
-    { return _topics; }
 
 protected:
 
@@ -74,11 +77,11 @@ protected:
   */
   virtual void callback(const std::vector<MPtr>& vecMPtr);
 
-private:
+  bool _new_img;
 
-  bool _new_mess;
+  std::vector<cv::Mat> _images;
+
   boost::mutex _mut;
-  std::vector<sensor_msgs::Image> _images;
 };
 
-#endif // ROS_IMG_SYNC_SYNC_POINTCLOUD_HANDLER_H
+#endif // ROS_IMG_SYNC_SYNC_IMAGE_TRANSPORT_HANDLER_H

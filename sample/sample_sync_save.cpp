@@ -41,7 +41,7 @@
 * and save them in a given folder.
 */
 
-#include "ros_img_sync/sync_image_handler.h"
+#include "ros_img_sync/sync_image_transport_handler.h"
 
 // ROS headers
 #include <ros/ros.h>
@@ -59,8 +59,10 @@
 * It synchronises image topic callbacks (up to 8)
 * Its callback save images named after their topic
 */
-class SyncImageExtractor : public SyncImageHandler
+class SyncImageExtractor :
+  public SyncImageTransportHandler
 {
+
 public:
 
   /**
@@ -69,10 +71,20 @@ public:
   * Retrieve rosparam 'file_path' a complete folder path to save images
   */
   SyncImageExtractor() :
-    SyncImageHandler(), // don't forget to call base constructor first
-    _imgnum(0)
+    SyncImageTransportHandler(), // don't forget to call base constructor first
+    _imgnum(0),
+    _rate(5)
   {
+    bool isStart = start();
+
+    if (!isStart)
+      _nh.shutdown();
+
     _nh.getParam("file_path", _filePath);
+
+    int rate = 5;
+    _nh.param("save_rate", rate, rate);
+    _rate = ros::Rate(rate);
 
     // Reqieres a full path
     if (!boost::filesystem::is_directory(_filePath))
@@ -82,7 +94,7 @@ public:
       ros::shutdown();
     }
 
-    for (int i=0; i<_topics.size(); ++i)
+    for (size_t i=0; i<_topics.size(); ++i)
     {
       ROS_INFO_STREAM("Saving images from topic : " << _topics[i]
       << " in folder : " << _filePath);
@@ -90,38 +102,24 @@ public:
     }
   }
 
-  ~SyncImageExtractor() {}
-
-protected:
-
-  /**
-  * A defined virtual member.
-  * @param vecImgPtr : std::vector< sensor_msgs::ImageConstPtr >
-  */
-  virtual void callback(const std::vector<ICPtr>& vecImgPtr)
+  void save()
   {
-    for (int i=0; i<vecImgPtr.size(); ++i)
-    {
-      if (vecImgPtr[i].use_count() > 0)
-      {
-        try
-        {
-          _image = cv_bridge::toCvShare(vecImgPtr[i], vecImgPtr[i]->encoding)->image;
-        }
-        catch (cv_bridge::Exception)
-        {
-          ROS_ERROR("Couldn't convert %s image", vecImgPtr[i]->encoding.c_str());
-          return;
-        }
+    std::vector<cv::Mat> images;
 
+    bool ok = waitForImages(images, ros::Duration(0));
+
+    if (ok)
+    {
+      for (size_t i=0; i<images.size(); ++i)
+      {
         std::string filename = boost::str(boost::format( "%04d" ) % _imgnum )
-          + "_" + _topics[i] + ".jpg";
+            + "_" + _topics[i] + ".jpg";
         boost::filesystem::path fullPath(_filePath);
         fullPath /= filename;
 
         try
         {
-          cv::imwrite(fullPath.c_str(), _image);
+          cv::imwrite(fullPath.c_str(), images[i]);
         }
         catch (cv::Exception)
         {
@@ -131,22 +129,41 @@ protected:
 
         ROS_INFO_STREAM("Saved image : "<< filename <<" at "<< _filePath <<". \n");
       }
+      ++_imgnum;
     }
-    ++_imgnum;
+
+    _rate.sleep();
   }
+
+  ~SyncImageExtractor() {}
+
+protected:
 
   std::string _filePath;
   int _imgnum;
   cv::Mat _image;
+
+  ros::Rate _rate;
 };
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "sync_img_extractor");
+  ros::init(argc, argv, "sync_img_extractor");
 
-    SyncImageExtractor sync_cam;
+  SyncImageExtractor sync_cam;
 
-    ros::spin();
+  // Use asynchronous spinner
+  // so that listener keeps listening
+  // while waiting for images
+  ros::AsyncSpinner aspin(1);
+  aspin.start();
 
-    return 0;
+  do
+  {
+    sync_cam.save();
+
+    ros::spinOnce();
+  } while (ros::ok());
+
+  return 0;
 }

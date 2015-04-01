@@ -53,114 +53,66 @@
 // OpenCV header
 #include <opencv2/highgui/highgui.hpp>
 
-/**
-* class SyncImageDisplay
-* It synchronises image topic callbacks (up to 8)
-* Its callback store images in a member
-*/
-class SyncImageDisplay : public SyncImageHandler
+class SyncCVImageHandler :
+  public SyncImageHandler
 {
+
 public:
 
-  /**
-  * Constructor.
-  * @see SyncImageHandler
-  */
-  SyncImageDisplay() :
-    SyncImageHandler(), // don't forget to call base constructor first
-    _new_img(false)
+  SyncCVImageHandler() :
+    SyncImageHandler(),
+    _encoding("bgr8")
   {
-    for (int i=0; i<_topics.size(); ++i)
-      _images.push_back(cv::Mat());
+    bool isStart = start();
 
-  }
+    _nh.param("encoding", _encoding, _encoding);
 
-  ~SyncImageDisplay() {}
-
-  /**
-  * getTopics()
-  * Returns topics that are listened
-  */
-  std::vector<std::string> getTopics()
-  {
-    return _topics;
-  }
-
-  /**
-  * getImages()
-  * Gets updated images from SyncImageDisplay object
-  * @param images : std::vector< cv::Mat >
-  *                 this vector is first cleared then
-  *                 filled with images
-  * @param timeout : max duration to wait for images
-  */
-  bool waitForImages(std::vector<cv::Mat>& images,
-                     ros::Duration timeout = ros::Duration(0))
-  {
-    ros::Duration sleep(0.005);
-    ros::Time start = ros::Time::now();
-
-    _new_img = false;
-
-    while (!_new_img)
+    if (!isStart)
     {
-      sleep.sleep();
-      if (timeout != ros::Duration(0))
-        if ( (ros::Time::now() - start) > timeout )
-          return false;
+      ROS_ERROR("Something went wrong.");
+      ROS_ERROR("Shutting down.");
+      _nh.shutdown();
     }
+  }
 
-    images.clear();
+  ~SyncCVImageHandler() {}
 
-    boost::mutex::scoped_lock lock(img_mut);
+  bool getImages(std::vector<cv::Mat>& cvimage, ros::Duration timer = ros::Duration(0))
+  {
+    std::vector<sensor_msgs::Image> images;
 
-    for (int i=0; i<_images.size(); ++i)
-      images.push_back(_images[i].clone());
+    if (!waitForImages(images, timer))
+      return false;
 
+    cvimage.clear();
+
+    for (size_t i=0; i<images.size(); ++i)
+    {
+      try
+      {
+        cvimage.push_back(cv_bridge::toCvShare(boost::make_shared<sensor_msgs::Image>(images[i]),
+                                               _encoding)->image.clone());
+      }
+      catch (cv_bridge::Exception)
+      {
+        ROS_ERROR("Couldn't convert image from %s to %s",
+                  _encoding.c_str(), images[i].encoding.c_str());
+        return false;
+      }
+    }
     return true;
   }
 
-protected:
+private:
 
-  /**
-  * A defined virtual member.
-  * @param vecImgPtr : std::vector< sensor_msgs::ImageConstPtr >
-  */
-  virtual void callback(const std::vector<ICPtr>& vecImgPtr)
-  {
-    boost::mutex::scoped_lock lock(img_mut);
-
-    for (int i=0; i<vecImgPtr.size(); ++i)
-    {
-      if (vecImgPtr[i].use_count() > 0)
-      {
-        try
-        {
-          // Here we clone OpenCV Mat to avoid messing up with pointers
-          _images[i] = cv_bridge::toCvShare(vecImgPtr[i],
-                               vecImgPtr[i]->encoding)->image.clone();
-        }
-        catch (cv_bridge::Exception)
-        {
-          ROS_ERROR("Couldn't convert %s image", vecImgPtr[i]->encoding.c_str());
-          _images[i] = cv::Mat();
-        }
-      }
-    }
-
-    _new_img = true;
-  }
-
-  boost::mutex img_mut;
-  std::vector<cv::Mat> _images;
-  bool _new_img;
+  std::string _encoding;
 };
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "sync_img_extractor");
 
-  SyncImageDisplay sync_cam;
+  SyncCVImageHandler sync_cam;
 
   std::vector<cv::Mat> images;
   char key = -1;
@@ -184,20 +136,16 @@ int main(int argc, char** argv)
   while (ros::ok() && key != 27)
   {
     // Get all images
-    new_img = sync_cam.waitForImages(images, ros::Duration(0));
+    new_img = sync_cam.getImages(images, ros::Duration(0));
 
     // If new images are grabbed
     // then display
     if (new_img)
-    {
-      for (int i=0; i<topics.size(); ++i)
-      {
+      for (size_t i=0; i<images.size(); ++i)
         if (!images[i].empty())
           cv::imshow(topics[i], images[i]);
-      }
-    }
 
-    key = cv::waitKey(150);
+    key = cv::waitKey(10);
   }
 
   return 0;

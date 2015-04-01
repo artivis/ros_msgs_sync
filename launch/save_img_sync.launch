@@ -11,7 +11,7 @@
     <arg name="queuesize" default="10" />
     <arg name="transport" default="raw" />
 
-    <node pkg="ros_img_sync" type="img_sync_save" name="img_sync_save" output="screen">
+    <node pkg="ros_img_sync" type="img_trp_sync_save" name="img_sync_save" output="screen">
        <param name="queue_size" value="$(arg queuesize)" />
        <param name="transport" value="$(arg transport)" />
        <param name="file_path" value="$(arg path)" />

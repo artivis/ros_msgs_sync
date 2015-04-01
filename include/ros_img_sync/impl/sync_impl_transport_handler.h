@@ -33,52 +33,53 @@
 */
 /** \author Jeremie Deray. */
 
-#ifndef ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
-#define ROS_IMG_SYNC_SYNC_IMAGE_HANDLER_H
+#ifndef ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
+#define ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
 
 #include "ros_img_sync/impl/sync_impl_handler.h"
 
+// ROS headers
+#include <image_transport/subscriber_filter.h>
 #include <sensor_msgs/Image.h>
 
-#include <boost/thread/mutex.hpp>
-
-class SyncImageHandler :
+/**
+* class SyncImageHandler
+* It synchronises image topic callbacks (up to 8)
+* Its callback is pure virtual so that it can be easily
+* defined in a derived class
+*/
+class SyncImplTransportHandler :
   public SyncImplHandler<sensor_msgs::Image>
 {
 
 public:
 
-  /*
+  /**
   * Constructor.
   * Retrieve rosparam 'topics' as a list of image topics to synchronise
+  *                   'transport' type of image transport. Default 'compressed'
+  *                   'queue_size' size of synronisation queue
   */
-  SyncImageHandler();
+  SyncImplTransportHandler();
 
-  /*
+  /**
   * Destructor.
   */
-  ~SyncImageHandler() {}
-
-  bool waitForImages(std::vector<sensor_msgs::Image>& images,
-                     ros::Duration timeout = ros::Duration(0));
-
-  std::vector<std::string> getTopics()
-    { return _topics; }
+  ~SyncImplTransportHandler() {}
 
 protected:
 
-  /*
-  * A pure virtual member.
-  * @param vecPcldPtr : std::vector< sensor_msgs::Image::Ptr >
-  *        callback has to be defined in derived class !
-  */
-  virtual void callback(const std::vector<MPtr>& vecMPtr);
+  typedef image_transport::ImageTransport It;
+  typedef image_transport::SubscriberFilter SubsFil;
 
-private:
+  virtual void initParam();
+  virtual bool initSubs();
+  virtual bool initSyncSubs();
 
-  bool _new_mess;
-  boost::mutex _mut;
-  std::vector<sensor_msgs::Image> _images;
+  std::string _trp_hint;
+
+  boost::shared_ptr<It> _img_trans;
+  boost::ptr_vector<SubsFil> _img_subs;
 };
 
-#endif // ROS_IMG_SYNC_SYNC_POINTCLOUD_HANDLER_H
+#endif // ROS_IMG_SYNC_SYNC_IMPL_TRANSPORT_HANDLER_H
