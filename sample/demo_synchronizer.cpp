@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
   while (ros::ok() && (ros::Time::now()-start < elapsed))
   {
-    std::tie(image_0, image_info_0, image_1, image_info_1) = msg_sync.getMessage();
+    std::tie(image_0, image_info_0, image_1, image_info_1) = msg_sync.getMessages();
 
     // Do stuff with messages.
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
   start = ros::Time::now();
   while (ros::ok() && (ros::Time::now()-start < elapsed))
   {
-    std::tie(image_0, image_info_0, image_1, image_info_1) = msg_sync.getMessage();
+    std::tie(image_0, image_info_0, image_1, image_info_1) = msg_sync.getMessages();
 
     // Do stuff with messages.
 

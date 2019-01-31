@@ -219,10 +219,13 @@ public:
   /// @return Synchronizer's ros::NodeHandle
   const ros::NodeHandle& getNodeHandle() const noexcept;
 
-  /// @brief Get the synchronized messages
+  /// @brief Get the synchronized messages.
+  /// This 'consums' the messages so that
+  /// they are internally set to nullptr
+  /// until the next batch is received.
   /// @return Messages a std::tuple of
   /// const boost::shared_ptr<MsgType>
-  Messages getMessage() const;
+  Messages getMessages() const;
 
   /// @brief Wait until the first synchronized messages
   /// are received.
@@ -382,7 +385,7 @@ MessageSynchronizerBase<SyncPolicy, Args...>::getNodeHandle() const noexcept
 
 template <template <typename...> class SyncPolicy,typename... Args>
 typename MessageSynchronizerBase<SyncPolicy, Args...>::Messages
-MessageSynchronizerBase<SyncPolicy, Args...>::getMessage() const
+MessageSynchronizerBase<SyncPolicy, Args...>::getMessages() const
 {
   return messages_;
 }
