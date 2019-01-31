@@ -195,6 +195,7 @@ template<typename T, typename F, std::size_t... I>
 void for_each(T&& t, F f, index_sequence<I...>)
 {
   auto l = { (f(std::get<I>(std::forward<T>(t))), 0)... };
+  (void)l;
 }
 
 template<typename F, template <class...Ts> class C, typename... Ts>
