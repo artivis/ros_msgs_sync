@@ -249,7 +249,7 @@ public:
 protected:
 
   bool subs_instantiate_ = false;
-  bool first_received_ = false;
+  bool received_ = false;
 
   std::size_t sync_q_size_ = 10;
   ros::NodeHandle nh_ = ros::NodeHandle("~");
@@ -357,7 +357,7 @@ bool MessageSynchronizerBase<SyncPolicy, Args...>::stop()
     synchronizer_.reset();
     subscribers_ = Subscribers{};
     subs_instantiate_ = false;
-    first_received_ = false;
+    received_ = false;
   }
 
   return !subs_instantiate_;
@@ -387,13 +387,14 @@ template <template <typename...> class SyncPolicy,typename... Args>
 typename MessageSynchronizerBase<SyncPolicy, Args...>::Messages
 MessageSynchronizerBase<SyncPolicy, Args...>::getMessages() const
 {
-  return messages_;
+  received_ = false;
+  return std::move(messages_);
 }
 
 template <template <typename...> class SyncPolicy,typename... Args>
 void MessageSynchronizerBase<SyncPolicy, Args...>::wait(ros::Rate sleep) const
 {
-  while (ros::ok() && !first_received_)
+  while (ros::ok() && !received_)
   {
     sleep.sleep();
   }
@@ -404,12 +405,12 @@ bool MessageSynchronizerBase<SyncPolicy, Args...>::wait(const ros::Duration d,
                                                         ros::Rate sleep) const
 {
   const auto start = ros::Time::now();
-  while (ros::ok() && !first_received_ ||
+  while (ros::ok() && !received_ ||
          (ros::Time::now() - start) < d)
   {
     sleep.sleep();
   }
-  return first_received_;
+  return received_;
 }
 
 template <template <typename...> class SyncPolicy,typename... Args>
@@ -457,7 +458,7 @@ void MessageSynchronizerBase<SyncPolicy, Args...>::callback(const boost::shared_
   ROS_INFO_STREAM("[Default callback] Received " << sizeof...(Args) << " synchronized messages with stamps :");
   ROS_INFO_STREAM(ss.str() << "\n");
 
-  first_received_ = true;
+  received_ = true;
 }
 
 template <template <typename...> class SyncPolicy,typename... Args>
