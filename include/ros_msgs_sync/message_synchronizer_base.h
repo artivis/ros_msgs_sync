@@ -225,7 +225,7 @@ public:
   /// until the next batch is received.
   /// @return Messages a std::tuple of
   /// const boost::shared_ptr<MsgType>
-  Messages getMessages() const;
+  Messages getMessages();
 
   /// @brief Wait until the first synchronized messages
   /// are received.
@@ -385,7 +385,7 @@ MessageSynchronizerBase<SyncPolicy, Args...>::getNodeHandle() const noexcept
 
 template <template <typename...> class SyncPolicy,typename... Args>
 typename MessageSynchronizerBase<SyncPolicy, Args...>::Messages
-MessageSynchronizerBase<SyncPolicy, Args...>::getMessages() const
+MessageSynchronizerBase<SyncPolicy, Args...>::getMessages()
 {
   received_ = false;
   return std::move(messages_);
